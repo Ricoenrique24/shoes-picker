@@ -61,14 +61,27 @@ create table if not exists public.shoes (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
-alter table public.shoes enable row level security;
-create policy "Allow public read" on public.shoes for select using (true);
-create policy "Allow public insert" on public.shoes for insert with check (true);
-create policy "Allow public update" on public.shoes for update using (true) with check (true);
-create policy "Allow public delete" on public.shoes for delete using (true);
+-- 2. Hak Akses (GRANT) ke role anon dan authenticated (Wajib di Supabase)
+grant usage on schema public to anon, authenticated;
+grant all on table public.shoes to anon, authenticated;
+grant all on all sequences in schema public to anon, authenticated;
 
+-- 3. Row Level Security Policies
+alter table public.shoes enable row level security;
+drop policy if exists "Allow public read access" on public.shoes;
+create policy "Allow public read access" on public.shoes for select using (true);
+drop policy if exists "Allow public insert access" on public.shoes;
+create policy "Allow public insert access" on public.shoes for insert with check (true);
+drop policy if exists "Allow public update access" on public.shoes;
+create policy "Allow public update access" on public.shoes for update using (true) with check (true);
+drop policy if exists "Allow public delete access" on public.shoes;
+create policy "Allow public delete access" on public.shoes for delete using (true);
+
+-- 4. Storage Bucket & Policies
 insert into storage.buckets (id, name, public) values ('shoe-images', 'shoe-images', true) on conflict (id) do nothing;
+drop policy if exists "Allow public read from shoe-images" on storage.objects;
 create policy "Allow public read from shoe-images" on storage.objects for select using (bucket_id = 'shoe-images');
+drop policy if exists "Allow public uploads to shoe-images" on storage.objects;
 create policy "Allow public uploads to shoe-images" on storage.objects for insert with check (bucket_id = 'shoe-images');
 `;
     navigator.clipboard.writeText(sql);

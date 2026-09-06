@@ -268,16 +268,13 @@ export function ShoeProvider({ children }) {
 
         if (error) {
           console.error('Error adding shoe to Supabase:', error);
-          // Add locally anyway
-          const localShoe = { ...newShoeData, id: 'local-' + Date.now() };
-          setShoes((prev) => [localShoe, ...prev]);
+          throw new Error(`Gagal simpan ke Supabase: ${error.message}. ${error.hint || 'Pastikan sudah menjalankan SQL GRANT di Supabase.'}`);
         } else if (data && data[0]) {
           setShoes((prev) => [data[0], ...prev]);
         }
       } catch (err) {
         console.error('Supabase add shoe failed:', err);
-        const localShoe = { ...newShoeData, id: 'local-' + Date.now() };
-        setShoes((prev) => [localShoe, ...prev]);
+        throw err;
       }
     } else {
       const localShoe = { ...newShoeData, id: 'local-' + Date.now() };

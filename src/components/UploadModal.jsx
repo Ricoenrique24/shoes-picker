@@ -78,7 +78,7 @@ export default function UploadModal() {
       setNotes('');
     } catch (err) {
       console.error('Error submitting shoe:', err);
-      setErrorMsg('Terjadi kesalahan saat menyimpan sepatu. Silakan coba lagi.');
+      setErrorMsg(err.message || 'Terjadi kesalahan saat menyimpan sepatu. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
