@@ -21,7 +21,7 @@ export function getSupabaseCredentials() {
 
   // Fallback to Vite Environment variables
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
-  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (envUrl && envKey && !envUrl.includes('your-project-id')) {
     return { url: envUrl, key: envKey, source: 'env' };
