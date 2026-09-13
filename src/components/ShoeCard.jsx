@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
-import { Sparkles, Trash2, Tag, Info, Check, X } from 'lucide-react';
+import { Sparkles, Trash2, Tag, Info, Check, X, Maximize2 } from 'lucide-react';
+import { useShoes } from '../context/ShoeContext';
 
 export default function ShoeCard({ shoe, isTop, onSwipe, cardIndex }) {
+  const { openZoom } = useShoes();
   const [showDetails, setShowDetails] = useState(false);
 
   // Framer Motion gesture values
@@ -77,14 +79,36 @@ export default function ShoeCard({ shoe, isTop, onSwipe, cardIndex }) {
         {/* Dark Gradient Vignette for Readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-black/20 pointer-events-none" />
 
-        {/* Top Badges */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-          <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-md">
-            {shoe.brand}
-          </span>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-500/30">
-            {shoe.category}
-          </span>
+        {/* Top Badges & Zoom Trigger */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-1.5 flex-wrap pointer-events-none">
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-md">
+              {shoe.brand}
+            </span>
+            {shoe.owner_tag && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-600/85 backdrop-blur-md text-purple-100 border border-purple-400/40 shadow-md flex items-center gap-1">
+                <Tag className="w-3 h-3 text-purple-200" />
+                {shoe.owner_tag}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 pointer-events-auto">
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-500/30">
+              {shoe.category}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openZoom(shoe);
+              }}
+              className="p-1.5 rounded-full bg-black/60 hover:bg-black/90 backdrop-blur-md text-slate-200 hover:text-white border border-white/20 shadow-md transition active:scale-90"
+              title="Perbesar Foto (Zoom)"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* SWIPE STAMPS (Tinder Indicators) */}
@@ -150,6 +174,12 @@ export default function ShoeCard({ shoe, isTop, onSwipe, cardIndex }) {
                 <span className="text-slate-400">Kategori:</span>
                 <span className="font-semibold text-emerald-400">{shoe.category}</span>
               </div>
+              {shoe.owner_tag && (
+                <div className="flex justify-between border-b border-white/10 pb-1.5">
+                  <span className="text-slate-400">Pemilik (Nametag):</span>
+                  <span className="font-bold text-purple-300">{shoe.owner_tag}</span>
+                </div>
+              )}
               <div className="flex justify-between pb-0.5">
                 <span className="text-slate-400">Keterangan:</span>
                 <span className="font-medium text-right text-slate-200">{shoe.notes || '-'}</span>

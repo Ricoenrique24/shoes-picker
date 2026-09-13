@@ -128,7 +128,7 @@ export default function SwipeDeck() {
             onClick={() => setActiveTab('koleksi')}
             className="w-full py-3 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
           >
-            <span>Lihat Daftar & Status</span>
+            <span>Buka Daftar Barang</span>
           </button>
 
           <button

@@ -9,6 +9,9 @@ import {
 
 const ShoeContext = createContext(null);
 const LOCAL_STORAGE_SHOES_KEY = 'shoespicker_local_shoes_v1';
+const LOCAL_STORAGE_TAGS_KEY = 'shoespicker_custom_tags_v1';
+
+const DEFAULT_TAGS = ['#PunyaKakak', '#PunyaMama', '#PunyaAdek', '#PunyaAyah'];
 
 export function ShoeProvider({ children }) {
   const [shoes, setShoes] = useState([]);
@@ -19,6 +22,98 @@ export function ShoeProvider({ children }) {
   const [activeTab, setActiveTab] = useState('sortir'); // 'sortir' | 'koleksi'
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+
+  // Nametag state: user-defined tags like #PunyaKakak, #PunyaMama, #PunyaAdek, #PunyaAyah
+  const [customTags, setCustomTags] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_TAGS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const updated = parsed.map((t) => {
+            if (t === '#PunyaSaya') return '#PunyaAdek';
+            if (t === '#PunyaPapa') return '#PunyaAyah';
+            return t;
+          });
+          if (!updated.includes('#PunyaAdek')) updated.push('#PunyaAdek');
+          if (!updated.includes('#PunyaAyah')) updated.push('#PunyaAyah');
+          const unique = Array.from(new Set(updated));
+          localStorage.setItem(LOCAL_STORAGE_TAGS_KEY, JSON.stringify(unique));
+          return unique;
+        }
+      }
+    } catch (e) {}
+    return DEFAULT_TAGS;
+  });
+
+  // Photo Zoom state
+  const [zoomImage, setZoomImage] = useState(null); // { url, name, brand, owner_tag, notes }
+
+  const openZoom = (shoeOrData) => {
+    if (!shoeOrData) return;
+    if (typeof shoeOrData === 'string') {
+      setZoomImage({ url: shoeOrData, name: 'Detail Foto', brand: '', owner_tag: '' });
+    } else {
+      setZoomImage({
+        url: shoeOrData.image_url || shoeOrData.url,
+        name: shoeOrData.name || 'Detail Foto',
+        brand: shoeOrData.brand || '',
+        owner_tag: shoeOrData.owner_tag || '',
+        notes: shoeOrData.notes || ''
+      });
+    }
+  };
+
+  const closeZoom = () => setZoomImage(null);
+
+  // User-defined tag manager
+  const addCustomTag = (rawTag) => {
+    if (!rawTag) return null;
+    let formatted = rawTag.trim();
+    if (!formatted.startsWith('#')) {
+      formatted = '#' + formatted;
+    }
+    // Remove consecutive spaces
+    formatted = formatted.replace(/\s+/g, '');
+    if (formatted === '#') return null;
+
+    setCustomTags((prev) => {
+      if (prev.includes(formatted)) return prev;
+      const updated = [...prev, formatted];
+      try {
+        localStorage.setItem(LOCAL_STORAGE_TAGS_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    return formatted;
+  };
+
+  const deleteCustomTag = (tagToDelete) => {
+    setCustomTags((prev) => {
+      const updated = prev.filter((t) => t !== tagToDelete);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_TAGS_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Helper to ensure shoes have owner_tag and migrate old tags
+  const normalizeShoesData = (items) => {
+    return items.map((shoe, idx) => {
+      let tag = shoe.owner_tag;
+      if (tag === '#PunyaSaya') tag = '#PunyaAdek';
+      if (tag === '#PunyaPapa') tag = '#PunyaAyah';
+      if (!tag) {
+        const def = DEFAULT_SHOES.find((d) => d.id === shoe.id || d.name === shoe.name);
+        tag = def?.owner_tag || (idx % 2 === 0 ? '#PunyaKakak' : '#PunyaMama');
+      }
+      return {
+        ...shoe,
+        owner_tag: tag
+      };
+    });
+  };
 
   // Initialize data (Fetch from Supabase if configured, otherwise from localStorage/defaultShoes)
   const loadShoes = useCallback(async () => {
@@ -41,7 +136,7 @@ export function ShoeProvider({ children }) {
           setCloudError(error.message);
           loadFromLocalStorage();
         } else if (data && data.length > 0) {
-          setShoes(data);
+          setShoes(normalizeShoesData(data));
         } else {
           // If Supabase table is empty, seed it with default shoes
           console.log('Seeding initial shoes to Supabase...');
@@ -52,6 +147,7 @@ export function ShoeProvider({ children }) {
                 name: s.name,
                 brand: s.brand,
                 category: s.category,
+                owner_tag: s.owner_tag || '#PunyaKakak',
                 image_url: s.image_url,
                 status: s.status,
                 notes: s.notes
@@ -60,7 +156,7 @@ export function ShoeProvider({ children }) {
             .select();
 
           if (!seedErr && seeded) {
-            setShoes(seeded);
+            setShoes(normalizeShoesData(seeded));
           } else {
             setShoes(DEFAULT_SHOES);
           }
@@ -80,7 +176,7 @@ export function ShoeProvider({ children }) {
     try {
       const cached = localStorage.getItem(LOCAL_STORAGE_SHOES_KEY);
       if (cached) {
-        setShoes(JSON.parse(cached));
+        setShoes(normalizeShoesData(JSON.parse(cached)));
       } else {
         setShoes(DEFAULT_SHOES);
         localStorage.setItem(LOCAL_STORAGE_SHOES_KEY, JSON.stringify(DEFAULT_SHOES));
@@ -205,7 +301,7 @@ export function ShoeProvider({ children }) {
   /**
    * Action: Upload & Add new shoe
    */
-  const addNewShoe = async ({ name, brand, category, notes, file, imageUrl }) => {
+  const addNewShoe = async ({ name, brand, category, owner_tag, notes, file, imageUrl }) => {
     let finalImageUrl = imageUrl;
     const supabase = getSupabaseClient();
 
@@ -249,10 +345,15 @@ export function ShoeProvider({ children }) {
       finalImageUrl = 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1000&q=80';
     }
 
+    const formattedTag = owner_tag
+      ? (owner_tag.startsWith('#') ? owner_tag.trim() : '#' + owner_tag.trim())
+      : '#PunyaKakak';
+
     const newShoeData = {
       name: name.trim(),
       brand: brand.trim(),
       category: category || 'Sneakers',
+      owner_tag: formattedTag,
       image_url: finalImageUrl,
       status: 'belum_disortir',
       notes: notes ? notes.trim() : '',
@@ -267,6 +368,25 @@ export function ShoeProvider({ children }) {
           .select();
 
         if (error) {
+          // If Supabase table does not have 'owner_tag' column yet, fallback gracefully
+          if (error.message?.includes('owner_tag') || error.code === '42703') {
+            console.warn('owner_tag column not in Supabase, inserting without it...');
+            const fallbackData = {
+              name: newShoeData.name,
+              brand: newShoeData.brand,
+              category: newShoeData.category,
+              image_url: newShoeData.image_url,
+              status: newShoeData.status,
+              notes: newShoeData.notes ? `${newShoeData.notes} [${formattedTag}]` : `[${formattedTag}]`,
+              created_at: newShoeData.created_at
+            };
+            const retryRes = await supabase.from('shoes').insert([fallbackData]).select();
+            if (retryRes.error) throw retryRes.error;
+            if (retryRes.data && retryRes.data[0]) {
+              setShoes((prev) => [{ ...retryRes.data[0], owner_tag: formattedTag }, ...prev]);
+              return;
+            }
+          }
           console.error('Error adding shoe to Supabase:', error);
           throw new Error(`Gagal simpan ke Supabase: ${error.message}. ${error.hint || 'Pastikan sudah menjalankan SQL GRANT di Supabase.'}`);
         } else if (data && data[0]) {
@@ -279,6 +399,31 @@ export function ShoeProvider({ children }) {
     } else {
       const localShoe = { ...newShoeData, id: 'local-' + Date.now() };
       setShoes((prev) => [localShoe, ...prev]);
+    }
+  };
+
+  /**
+   * Action: Update owner nametag
+   */
+  const updateShoeTag = async (shoeId, newTag) => {
+    const formattedTag = newTag
+      ? (newTag.startsWith('#') ? newTag.trim() : '#' + newTag.trim())
+      : '';
+
+    setShoes((prev) =>
+      prev.map((s) => (s.id === shoeId ? { ...s, owner_tag: formattedTag } : s))
+    );
+
+    const supabase = getSupabaseClient();
+    if (isCloud && supabase) {
+      try {
+        await supabase
+          .from('shoes')
+          .update({ owner_tag: formattedTag })
+          .eq('id', shoeId);
+      } catch (err) {
+        console.warn('Supabase update tag notice:', err);
+      }
     }
   };
 
@@ -321,6 +466,7 @@ export function ShoeProvider({ children }) {
             name: s.name,
             brand: s.brand,
             category: s.category,
+            owner_tag: s.owner_tag || '#PunyaKakak',
             image_url: s.image_url,
             status: 'belum_disortir',
             notes: s.notes
@@ -374,11 +520,20 @@ export function ShoeProvider({ children }) {
         undoLastSwipe,
         canUndo: swipeHistory.length > 0,
         updateShoeStatus,
+        updateShoeTag,
         deleteShoe,
         addNewShoe,
         resetSortirStatus,
         restoreDefaultCatalog,
-        refreshShoes: loadShoes
+        refreshShoes: loadShoes,
+        // Nametag additions
+        customTags,
+        addCustomTag,
+        deleteCustomTag,
+        // Zoom additions
+        zoomImage,
+        openZoom,
+        closeZoom
       }}
     >
       {children}

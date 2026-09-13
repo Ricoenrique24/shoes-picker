@@ -6,6 +6,7 @@ import SwipeDeck from './components/SwipeDeck';
 import ShoeList from './components/ShoeList';
 import UploadModal from './components/UploadModal';
 import CloudConfigModal from './components/CloudConfigModal';
+import ImageZoomModal from './components/ImageZoomModal';
 
 function MainApp() {
   const { activeTab } = useShoes();
@@ -40,6 +41,7 @@ function MainApp() {
         {/* Modals */}
         <UploadModal />
         <CloudConfigModal />
+        <ImageZoomModal />
       </div>
     </div>
   );

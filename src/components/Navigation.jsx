@@ -42,7 +42,7 @@ export default function Navigation() {
           </span>
         </button>
 
-        {/* Tab 2: Koleksi & Status */}
+        {/* Tab 2: Daftar Barang */}
         <button
           onClick={() => setActiveTab('koleksi')}
           className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 relative ${
@@ -57,7 +57,7 @@ export default function Navigation() {
               {statusCounts.total}
             </span>
           </div>
-          <span className="text-[11px] mt-1 tracking-tight">Daftar Status</span>
+          <span className="text-[11px] mt-1 tracking-tight">Daftar Barang</span>
         </button>
       </div>
     </nav>

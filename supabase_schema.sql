@@ -9,11 +9,15 @@ create table if not exists public.shoes (
   name text not null,
   brand text not null,
   category text default 'Sneakers',
+  owner_tag text default '#PunyaKakak',
   image_url text not null,
   status text check (status in ('belum_disortir', 'masih_dipakai', 'tidak_dipakai')) default 'belum_disortir',
   notes text default '',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Tambahkan kolom owner_tag jika tabel sudah terlanjur dibuat sebelumnya
+alter table public.shoes add column if not exists owner_tag text default '#PunyaKakak';
 
 -- 2. Berikan Hak Akses (GRANT) ke role anon dan authenticated (WAJIB di Supabase)
 grant usage on schema public to anon, authenticated;
